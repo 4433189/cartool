@@ -86,32 +86,6 @@ void CGImageWriteToFile(CGImageRef image, NSString *path)
 
 NSString *idiomSuffixForCoreThemeIdiom(kCoreThemeIdiom idiom)
 {
-	switch (idiom) {
-		case kCoreThemeIdiomUniversal:
-			return @"";
-			break;
-		case kCoreThemeIdiomPhone:
-			return @"~iphone";
-			break;
-		case kCoreThemeIdiomPad:
-			return @"~ipad";
-			break;
-		case kCoreThemeIdiomTV:
-			return @"~tv";
-			break;
-		case kCoreThemeIdiomCar:
-			return @"~carplay";
-			break;
-		case kCoreThemeIdiomWatch:
-			return @"~watch";
-			break;
-		case kCoreThemeIdiomMarketing:
-			return @"~marketing";
-			break;
-		default:
-			break;
-	}
-	
 	return @"";
 }
 
