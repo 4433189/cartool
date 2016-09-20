@@ -8,21 +8,6 @@
 
 #import <Foundation/Foundation.h>
 
-typedef enum _kCoreThemeIdiom {
-	kCoreThemeIdiomUniversal,
-	kCoreThemeIdiomPhone,
-	kCoreThemeIdiomPad,
-	kCoreThemeIdiomTV,
-	kCoreThemeIdiomCar,
-	kCoreThemeIdiomWatch,
-	kCoreThemeIdiomMarketing
-} kCoreThemeIdiom;
-
-typedef NS_ENUM(NSInteger, UIUserInterfaceSizeClass) {
-	UIUserInterfaceSizeClassUnspecified = 0,
-	UIUserInterfaceSizeClassCompact     = 1,
-	UIUserInterfaceSizeClassRegular     = 2,
-};
 
 @interface CUICommonAssetStorage : NSObject
 
@@ -36,12 +21,6 @@ typedef NS_ENUM(NSInteger, UIUserInterfaceSizeClass) {
 @end
 
 @interface CUINamedImage : NSObject
-
-@property(readonly) CGSize size;
-@property(readonly) CGFloat scale;
-@property(readonly) kCoreThemeIdiom idiom;
-@property(readonly) UIUserInterfaceSizeClass sizeClassHorizontal;
-@property(readonly) UIUserInterfaceSizeClass sizeClassVertical;
 
 -(CGImageRef)image;
 
@@ -58,110 +37,73 @@ typedef NS_ENUM(NSInteger, UIUserInterfaceSizeClass) {
 
 @interface CUICatalog : NSObject
 
-@property(readonly) bool isVectorBased;
-
 -(id)initWithName:(NSString *)n fromBundle:(NSBundle *)b;
 -(id)allKeys;
--(id)allImageNames;
 -(CUINamedImage *)imageWithName:(NSString *)n scaleFactor:(CGFloat)s;
 -(CUINamedImage *)imageWithName:(NSString *)n scaleFactor:(CGFloat)s deviceIdiom:(int)idiom;
--(NSArray *)imagesWithName:(NSString *)n;
 
 @end
 
-
+#define kCoreThemeIdiomPhone 1
+#define kCoreThemeIdiomPad 2
 
 void CGImageWriteToFile(CGImageRef image, NSString *path)
 {
-	CFURLRef url = (__bridge CFURLRef)[NSURL fileURLWithPath:path];
-	CGImageDestinationRef destination = CGImageDestinationCreateWithURL(url, kUTTypePNG, 1, NULL);
-	CGImageDestinationAddImage(destination, image, nil);
-	
-	if (!CGImageDestinationFinalize(destination)) {
-		NSLog(@"Failed to write image to %@", path);
-	}
-	
-	CFRelease(destination);
+    CFURLRef url = (__bridge CFURLRef)[NSURL fileURLWithPath:path];
+    CGImageDestinationRef destination = CGImageDestinationCreateWithURL(url, kUTTypePNG, 1, NULL);
+    CGImageDestinationAddImage(destination, image, nil);
+    
+    if (!CGImageDestinationFinalize(destination)) {
+        NSLog(@"Failed to write image to %@", path);
+    }
+    
+    CFRelease(destination);
 }
 
-NSString *idiomSuffixForCoreThemeIdiom(kCoreThemeIdiom idiom)
-{
-	return @"";
-}
-
-NSString *sizeClassSuffixForSizeClass(UIUserInterfaceSizeClass sizeClass)
-{
-	switch (sizeClass)
-	{
-		case UIUserInterfaceSizeClassCompact:
-			return @"C";
-			break;
-		case UIUserInterfaceSizeClassRegular:
-			return @"R";
-			break;
-		default:
-			return @"A";
-	}
-}
 
 void exportCarFileAtPath(NSString * carPath, NSString *outputDirectoryPath)
 {
-	NSError *error = nil;
-	
-	outputDirectoryPath = [outputDirectoryPath stringByExpandingTildeInPath];
-	
-	CUIThemeFacet *facet = [CUIThemeFacet themeWithContentsOfURL:[NSURL fileURLWithPath:carPath] error:&error];
-	
-	CUICatalog *catalog = [[CUICatalog alloc] init];
-	
-	/* Override CUICatalog to point to a file rather than a bundle */
-	[catalog setValue:facet forKey:@"_storageRef"];
-	
-	/* CUICommonAssetStorage won't link */
-	CUICommonAssetStorage *storage = [[NSClassFromString(@"CUICommonAssetStorage") alloc] initWithPath:carPath];
-	
-	for (NSString *key in [storage allRenditionNames])
-	{
-		printf("%s\n", [key UTF8String]);
-		
-		NSArray *images = [catalog imagesWithName:key];
-		for( CUINamedImage *image in images )
-		{
-			if( CGSizeEqualToSize(image.size, CGSizeZero) )
-				printf("\tnil image?\n");
-			else
-			{
-				CGImageRef cgImage = [image image];
-				NSString *idiomSuffix = idiomSuffixForCoreThemeIdiom(image.idiom);
-				
-				NSString *sizeClassSuffix = @"";
-				
-				if (image.sizeClassHorizontal || image.sizeClassVertical)
-				{
-					sizeClassSuffix = [NSString stringWithFormat:@"-%@x%@", sizeClassSuffixForSizeClass(image.sizeClassHorizontal), sizeClassSuffixForSizeClass(image.sizeClassVertical)];
-				}
-				
-				NSString *scale = image.scale > 1.0 ? [NSString stringWithFormat:@"@%dx", (int)floor(image.scale)] : @"";
-				NSString *name = [NSString stringWithFormat:@"%@%@%@%@.png", key, idiomSuffix, sizeClassSuffix, scale];
-				printf("\t%s\n", [name UTF8String]);
-				if( outputDirectoryPath )
-					CGImageWriteToFile(cgImage, [outputDirectoryPath stringByAppendingPathComponent:name]);
-			}
-		}
-	}
+    NSError *error = nil;
+    
+    outputDirectoryPath = [outputDirectoryPath stringByExpandingTildeInPath];
+    
+    CUIThemeFacet *facet = [CUIThemeFacet themeWithContentsOfURL:[NSURL fileURLWithPath:carPath] error:&error];
+    
+    CUICatalog *catalog = [[CUICatalog alloc] init];
+    
+    /* Override CUICatalog to point to a file rather than a bundle */
+    [catalog setValue:facet forKey:@"_storageRef"];
+    
+    /* CUICommonAssetStorage won't link */
+    CUICommonAssetStorage *storage = [[NSClassFromString(@"CUICommonAssetStorage") alloc] initWithPath:carPath];
+    
+    for (NSString *key in [storage allRenditionNames])
+    {
+        printf("%s\n", [key UTF8String]);
+        
+        CGImageRef iphone2X = [[catalog imageWithName:key scaleFactor:2.0 deviceIdiom:kCoreThemeIdiomPhone] image];
+        CGImageRef iphone3X = [[catalog imageWithName:key scaleFactor:3.0 deviceIdiom:kCoreThemeIdiomPhone] image];
+        
+        if (iphone2X)
+            CGImageWriteToFile(iphone2X, [outputDirectoryPath stringByAppendingPathComponent:[NSString stringWithFormat:@"%@@2x.png", key]]);
+        
+        if (iphone3X)
+            CGImageWriteToFile(iphone3X, [outputDirectoryPath stringByAppendingPathComponent:[NSString stringWithFormat:@"%@@3x.png", key]]);
+    }
 }
 
 int main(int argc, const char * argv[])
 {
-	@autoreleasepool {
-		
-		if (argc < 2)
-		{
-			printf("Usage: cartool <path to Assets.car> [outputDirectory]\n");
-			return -1;
-		}
-		
-		exportCarFileAtPath([NSString stringWithUTF8String:argv[1]], argc > 2 ? [NSString stringWithUTF8String:argv[2]] : nil);
-	}
-	return 0;
+    @autoreleasepool {
+        
+        if (argc != 3)
+        {
+            printf("Usage: cartool Assets.car outputDirectory\n");
+            return -1;
+        }
+        
+        exportCarFileAtPath([NSString stringWithUTF8String:argv[1]], [NSString stringWithUTF8String:argv[2]]);
+        
+    }
+    return 0;
 }
